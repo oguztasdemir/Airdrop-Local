@@ -5,6 +5,11 @@
 [![License](https://img.shields.io/badge/license-MIT-green.svg?style=flat-square)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg?style=flat-square)](#)
 
+<p align="center">
+  <img src="screenshots/pc_interface.png" width="58%" alt="PC Arayüzü" />
+  <img src="screenshots/mobile_interface.png" width="38%" alt="Mobil Arayüz" />
+</p>
+
 AirDrop Local, yerel ağınızda (Wi-Fi) bilgisayarınız ve mobil cihazlarınız (iPhone/Android) arasında kablosuz olarak dosya, medya ve veri transferi yapabilmenizi sağlayan **Çoklu Oturum (Multi-Session / Multi-Tenant Sandbox)** destekli, ultra-premium tasarımlı yerel bir bulut paylaşım merkezidir.
 
 Gelecekte harici bir web sunucusuna (domain) taşınmaya tamamen uygun şekilde tasarlanan mimarisi sayesinde, her yeni tarayıcı sekmesi kendi bağımsız oturumunu ve şifresini (PIN) oluşturur.
