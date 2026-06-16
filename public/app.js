@@ -260,6 +260,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const pin = sessionStorage.getItem('airdrop_pin') || getUrlPin() || '';
         serverUploadUrl = pin ? `${data.uploadUrl}?pin=${pin}` : data.uploadUrl;
         statusText.textContent = `Aktif: ${data.ip}:${data.port}`;
+
+        const sessionPinBadge = document.getElementById('sessionPinBadge');
+        if (sessionPinBadge) {
+          sessionPinBadge.textContent = pin;
+        }
         
         if (!isMobile && !qrCodeInstance && document.getElementById('qrcode')) {
           qrCodeInstance = new QRCode(document.getElementById('qrcode'), {
