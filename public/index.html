@@ -33,6 +33,9 @@
           <span class="accent-dot" data-accent="orange" style="background: #f97316;"></span>
         </div>
       </div>
+      <div class="status-badge" id="activeSessionHeaderBadge" style="background: rgba(99, 102, 241, 0.1); border-color: rgba(99, 102, 241, 0.3); color: var(--accent-color); font-weight: 600;">
+        🔑 Oturum PIN: -
+      </div>
       <div class="status-badge" id="statusBadge">
         <span class="pulse-dot"></span>
         <span class="status-text">Sunucu Bağlanıyor...</span>
@@ -53,11 +56,6 @@
             <h2>iPhone'u Bağla</h2>
             <p class="card-desc">iPhone kameranız ile aşağıdaki QR kodu okutarak galerinizden veya dosyalarınızdan doğrudan paylaşım yapın.</p>
             
-            <div class="session-pin-display" style="background: rgba(99,102,241,0.1); border: 1px solid rgba(99,102,241,0.25); border-radius: var(--radius-sm); padding: 10px 16px; margin: 0 0 16px 0; width: 100%; display: flex; justify-content: space-between; align-items: center; box-sizing: border-box;">
-              <span class="control-label" style="margin: 0; font-weight: 600;">Oturum PIN Kodu:</span>
-              <span id="sessionPinBadge" style="font-size: 20px; font-weight: 700; color: var(--accent-color); letter-spacing: 2px;">------</span>
-            </div>
-
             <div class="qr-container-outer">
               <div id="qrcode"></div>
             </div>
@@ -75,6 +73,18 @@
             <p class="card-desc">Şu anda sunucuya bağlı olan aktif cihazlar.</p>
             <div class="devices-list" id="devicesList">
               <div class="no-devices">Bağlı cihaz yok</div>
+            </div>
+          </div>
+
+          <!-- Aktif Oturumlar Card (PC) -->
+          <div class="card glass-card sessions-card" style="margin-top: 24px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <h2>Aktif Oturumlar</h2>
+              <button class="btn-primary" id="newSessionBtnPC" style="padding: 6px 12px; font-size: 12px; font-weight: 600; box-shadow: none;">Yeni Oturum Aç</button>
+            </div>
+            <p class="card-desc" style="margin-bottom: 12px;">Bağlanabileceğiniz mevcut oturumlar listesi.</p>
+            <div class="sessions-list" id="sessionsListPC" style="display: flex; flex-direction: column; gap: 8px; max-height: 120px; overflow-y: auto; padding: 4px; border-radius: var(--radius-sm); background: rgba(0,0,0,0.1);">
+              <!-- Rendered dynamically -->
             </div>
           </div>
 

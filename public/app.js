@@ -222,8 +222,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?pin=' + pin;
         window.history.replaceState({ path: newUrl }, '', newUrl);
       }
-      // Check if session is valid on server
-      fetch(`/api/status?pin=${pin}`)
+      // Check if session is valid on server using validate endpoint
+      fetch(`/api/sessions/validate/${pin}`)
         .then(res => {
           if (res.status === 401) {
             sessionStorage.removeItem('airdrop_pin');
@@ -246,10 +246,77 @@ document.addEventListener('DOMContentLoaded', () => {
       setupDesktopDashboard();
     }
 
+    const pin = sessionStorage.getItem('airdrop_pin');
+    const headerBadge = document.getElementById('activeSessionHeaderBadge');
+    if (headerBadge) {
+      headerBadge.textContent = `🔑 Oturum PIN: ${pin}`;
+    }
+
     updateStatus();
     fetchFolders();
     fetchClipboard();
     fetchUserPaths();
+    fetchChatMessages();
+
+    if (!isMobile) {
+      fetchActiveSessions();
+      
+      const newSessionBtn = document.getElementById('newSessionBtnPC');
+      if (newSessionBtn) {
+        newSessionBtn.addEventListener('click', () => {
+          fetch('/api/sessions/create', { method: 'POST' })
+            .then(res => res.json())
+            .then(data => {
+              switchSession(data.pin);
+            })
+            .catch(err => console.error('Yeni oturum oluşturma hatası:', err));
+        });
+      }
+    }
+  }
+
+  function renderActiveSessions(sessionsList) {
+    const sessionsListPC = document.getElementById('sessionsListPC');
+    if (!sessionsListPC) return;
+    const currentPin = sessionStorage.getItem('airdrop_pin');
+    
+    if (sessionsList.length === 0) {
+      sessionsListPC.innerHTML = `<div style="text-align:center;font-size:12px;color:var(--text-muted);padding:10px;">Aktif oturum yok</div>`;
+      return;
+    }
+    
+    sessionsListPC.innerHTML = sessionsList.map(p => {
+      const isActive = p === currentPin;
+      return `
+        <div class="session-item" style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;border-radius:var(--radius-sm);background:${isActive ? 'rgba(99,102,241,0.15)' : 'rgba(255,255,255,0.02)'};border:1px solid ${isActive ? 'var(--accent-color)' : 'var(--glass-border)'};cursor:pointer;transition:all 0.2s;margin-bottom: 4px;" data-pin="${p}">
+          <span style="font-size:13px;font-weight:600;color:var(--text-main);">Oturum #${p}</span>
+          <span style="font-size:11px;font-weight:500;color:${isActive ? 'var(--accent-color)' : 'var(--text-muted)'};">${isActive ? 'Aktif' : 'Katıl'}</span>
+        </div>
+      `;
+    }).join('');
+
+    sessionsListPC.querySelectorAll('.session-item').forEach(item => {
+      item.addEventListener('click', () => {
+        const p = item.dataset.pin;
+        if (p === currentPin) return;
+        switchSession(p);
+      });
+    });
+  }
+
+  function fetchActiveSessions() {
+    fetch('/api/sessions')
+      .then(res => res.json())
+      .then(sessionsList => {
+        renderActiveSessions(sessionsList);
+      })
+      .catch(err => console.error('Oturum listesi yüklenemedi:', err));
+  }
+
+  function switchSession(p) {
+    sessionStorage.setItem('airdrop_pin', p);
+    const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?pin=' + p;
+    window.location.href = newUrl; // Full reload to reset all states safely
   }
 
   // Check connection status & trigger PIN validation if external
@@ -260,11 +327,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const pin = sessionStorage.getItem('airdrop_pin') || getUrlPin() || '';
         serverUploadUrl = pin ? `${data.uploadUrl}?pin=${pin}` : data.uploadUrl;
         statusText.textContent = `Aktif: ${data.ip}:${data.port}`;
-
-        const sessionPinBadge = document.getElementById('sessionPinBadge');
-        if (sessionPinBadge) {
-          sessionPinBadge.textContent = pin;
-        }
         
         if (!isMobile && !qrCodeInstance && document.getElementById('qrcode')) {
           qrCodeInstance = new QRCode(document.getElementById('qrcode'), {
@@ -929,6 +991,8 @@ document.addEventListener('DOMContentLoaded', () => {
         
         if (data.type === 'device_list_update') {
           renderDevicesList(data.devices);
+        } else if (data.type === 'global_sessions_update') {
+          renderActiveSessions(data.sessions);
         } else if (data.type === 'clipboard_update') {
           renderClipboard(data.items);
           showToast('Pano Güncellendi', 'Ortak pano içeriği güncellendi.', 'info');

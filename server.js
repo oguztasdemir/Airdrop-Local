@@ -17,6 +17,7 @@ if (!fs.existsSync(uploadsDir)) {
 
 // Session store
 let sessions = {};
+let nextSessionPin = 1; // Sequential session PINs starting at 1
 
 // Helper to resolve session-specific directories
 function getSessionUploadsDir(pin) {
@@ -36,8 +37,13 @@ function createSessionDirs(pin) {
 
 // Security PIN validation middleware
 function pinAuth(req, res, next) {
-  // Allow index.html, static files, session creation and status
-  if (req.path === '/api/sessions/create' || req.path === '/api/status') {
+  // Allow static files, session endpoints, and status
+  if (
+    req.path === '/api/sessions/create' || 
+    req.path === '/api/sessions' || 
+    req.path.startsWith('/api/sessions/validate/') ||
+    req.path === '/api/status'
+  ) {
     return next();
   }
 
@@ -109,6 +115,13 @@ function broadcastEvent(pin, eventData) {
   });
 }
 
+function broadcastGlobalSessionsUpdate() {
+  const sessionList = Object.keys(sessions);
+  sessionList.forEach(pin => {
+    broadcastEvent(pin, { type: 'global_sessions_update', sessions: sessionList });
+  });
+}
+
 function broadcastDeviceList(pin) {
   const session = getSession(pin);
   if (!session) return;
@@ -148,12 +161,10 @@ function getLocalIpAddress() {
   return 'localhost';
 }
 
-// Session creation endpoint
+// Session creation endpoint (1, 2, 3...)
 app.post('/api/sessions/create', (req, res) => {
-  let pin;
-  do {
-    pin = Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit PIN
-  } while (sessions[pin]);
+  const pin = nextSessionPin.toString();
+  nextSessionPin++;
 
   sessions[pin] = {
     sseClients: [],
@@ -164,7 +175,24 @@ app.post('/api/sessions/create', (req, res) => {
 
   createSessionDirs(pin);
   console.log(`[+] Yeni Oturum Oluşturuldu: [ PIN: ${pin} ]`);
+  
+  broadcastGlobalSessionsUpdate();
   res.json({ pin });
+});
+
+// Get list of active session PINs
+app.get('/api/sessions', (req, res) => {
+  res.json(Object.keys(sessions));
+});
+
+// Validate session PIN
+app.get('/api/sessions/validate/:pin', (req, res) => {
+  const { pin } = req.params;
+  if (sessions[pin]) {
+    res.json({ valid: true });
+  } else {
+    res.status(401).json({ valid: false });
+  }
 });
 
 // Server-Sent Events subscription for real-time updates
@@ -723,6 +751,7 @@ setInterval(() => {
       delete sessions[pin];
     }
   });
+  broadcastGlobalSessionsUpdate();
 }, 60 * 60 * 1000); // Clean every hour
 
 app.listen(PORT, '0.0.0.0', () => {
