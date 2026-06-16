@@ -166,7 +166,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const pin = pinModalInput.value.trim();
     if (!pin) return;
 
-    fetch(`/api/status?pin=${pin}`)
+    fetch(`/api/sessions/validate/${pin}`)
       .then(res => {
         if (res.status === 401) {
           pinErrorText.classList.remove('hidden');
@@ -175,16 +175,8 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
           sessionStorage.setItem('airdrop_pin', pin);
           hidePinModal();
-          // Reload everything
-          updateStatus();
-          fetchFolders();
-          fetchClipboard();
-          fetchUserPaths();
-          if (!isMobile) {
-            fetchFiles();
-          } else {
-            fetchMobileFiles();
-          }
+          const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?pin=' + pin;
+          window.location.href = newUrl; // Full reload to load correctly
         }
       })
       .catch(err => {
@@ -199,22 +191,27 @@ document.addEventListener('DOMContentLoaded', () => {
   function initializeSession() {
     const pin = sessionStorage.getItem('airdrop_pin') || getUrlPin();
     if (!pin) {
-      // Create a new session on the server
-      fetch('/api/sessions/create', { method: 'POST' })
-        .then(res => {
-          if (!res.ok) throw new Error('Oturum oluşturulamadı');
-          return res.json();
-        })
-        .then(data => {
-          sessionStorage.setItem('airdrop_pin', data.pin);
-          const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?pin=' + data.pin;
-          window.history.replaceState({ path: newUrl }, '', newUrl);
-          startApp();
-        })
-        .catch(err => {
-          console.error('Session creation failed:', err);
-          showPinModal();
-        });
+      if (isMobile) {
+        // Mobile manual entry: do not auto-create session. Show manual entry modal!
+        showPinModal();
+      } else {
+        // PC/Desktop: automatically create a new session
+        fetch('/api/sessions/create', { method: 'POST' })
+          .then(res => {
+            if (!res.ok) throw new Error('Oturum oluşturulamadı');
+            return res.json();
+          })
+          .then(data => {
+            sessionStorage.setItem('airdrop_pin', data.pin);
+            const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?pin=' + data.pin;
+            window.history.replaceState({ path: newUrl }, '', newUrl);
+            startApp();
+          })
+          .catch(err => {
+            console.error('Session creation failed:', err);
+            showPinModal();
+          });
+      }
     } else {
       sessionStorage.setItem('airdrop_pin', pin);
       const currentUrlParams = new URLSearchParams(window.location.search);
@@ -227,7 +224,7 @@ document.addEventListener('DOMContentLoaded', () => {
         .then(res => {
           if (res.status === 401) {
             sessionStorage.removeItem('airdrop_pin');
-            // Session expired on server, create a new one
+            // Session expired on server, re-initialize
             initializeSession();
           } else {
             startApp();
