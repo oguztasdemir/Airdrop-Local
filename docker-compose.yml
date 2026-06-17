@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  airdrop:
+    build: .
+    container_name: airdrop_local
+    restart: unless-stopped
+    ports:
+      - "${PORT:-3000}:3000"
+    volumes:
+      # Verilerin ve dosyaların konteyner silinse bile kalıcı olması için yerel diskle eşliyoruz
+      - ./downloads:/app/downloads
+      - ./data:/app/data
+
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=production

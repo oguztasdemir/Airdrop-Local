@@ -10,6 +10,8 @@
   <link rel="stylesheet" href="style.css">
   <!-- QRCode.js CDN for client-side QR generation -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <!-- Face API for client-side face recognition -->
+  <script src="js/face-api.min.js"></script>
 </head>
 <body>
   <div class="glass-bg"></div>
@@ -33,6 +35,10 @@
           <span class="accent-dot" data-accent="orange" style="background: #f97316;"></span>
         </div>
       </div>
+      <div class="status-badge hidden" id="userHeaderBadge" style="background: rgba(99, 102, 241, 0.1); border-color: rgba(99, 102, 241, 0.3); color: var(--accent-color); font-weight: 600; display: flex; align-items: center; gap: 8px;">
+        <span id="userHeaderName">👤 Kullanıcı: -</span>
+        <button id="changeAccountBtn" style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); color: #ef4444; cursor: pointer; font-size: 11px; font-weight: 600; padding: 2px 6px; border-radius: 4px; transition: all 0.2s;">Değiştir</button>
+      </div>
       <div class="status-badge" id="activeSessionHeaderBadge" style="background: rgba(99, 102, 241, 0.1); border-color: rgba(99, 102, 241, 0.3); color: var(--accent-color); font-weight: 600;">
         🔑 Oturum PIN: -
       </div>
@@ -48,166 +54,533 @@
     
     <!-- DESKTOP DASHBOARD VIEW -->
     <section id="desktopView" class="view-section active">
-      <div class="dashboard-grid">
-        <!-- Left Column: Connect Info & Active Devices -->
-        <div class="dashboard-left-col">
-          <!-- QR Code & Connect Card -->
-          <div class="card glass-card qr-card">
-            <h2>iPhone'u Bağla</h2>
-            <p class="card-desc">iPhone kameranız ile aşağıdaki QR kodu okutarak galerinizden veya dosyalarınızdan doğrudan paylaşım yapın.</p>
-            
-            <div class="qr-container-outer">
-              <div id="qrcode"></div>
-            </div>
-            
-            <div class="connection-info">
-              <span class="info-label">Aynı Wi-Fi ağına bağlı olun:</span>
-              <div class="ip-display" id="ipAddressText">http://localhost:3000</div>
-              <button class="btn-copy" id="copyUrlBtn">Bağlantıyı Kopyala</button>
-            </div>
+      <div class="desktop-layout">
+        
+        <!-- Sidebar -->
+        <aside class="sidebar">
+          <div class="logo-area" style="margin-bottom: 24px;">
+            <div class="logo-pulse"></div>
+            <h1>AirDrop<span>Local</span></h1>
           </div>
+          
+          <!-- Navigation Menu -->
+          <nav class="sidebar-menu">
+            <button class="menu-item active" data-tab="filesTab">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+              Dosyalarım
+            </button>
+            <button class="menu-item" data-tab="facesTab">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a5 5 0 0 0-5 5v3a5 5 0 0 0 10 0V7a5 5 0 0 0-5-5z"/><path d="M18 21a6 6 0 0 0-12 0"/></svg>
+              Yüz Tanıma
+            </button>
+            <button class="menu-item" data-tab="commTab">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+              Sohbet
+            </button>
+            <button class="menu-item" data-tab="connectTab">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+              Cihazı Bağla
+            </button>
+            <button class="menu-item" data-tab="settingsTab" id="settingsTabMenuBtn">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+              Hesabım & Ayarlar
+            </button>
+            <button class="menu-item" data-tab="helpTab">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              Hakkında & Yardım
+            </button>
+          </nav>
 
-          <!-- Connected Devices Card -->
-          <div class="card glass-card devices-card" style="margin-top: 24px;">
-            <h2>Bağlı Cihazlar</h2>
-            <p class="card-desc">Şu anda sunucuya bağlı olan aktif cihazlar.</p>
-            <div class="devices-list" id="devicesList">
-              <div class="no-devices">Bağlı cihaz yok</div>
-            </div>
+          <!-- Return to Sessions Page in Sidebar -->
+          <div class="sidebar-sessions" style="margin-top: auto; padding-top: 20px; border-top: 1px solid var(--glass-border);">
+            <button class="menu-item" id="goToSessionsBtnPC" style="width: 100%; justify-content: flex-start; gap: 8px; background: rgba(99, 102, 241, 0.1); border: 1px solid rgba(99, 102, 241, 0.2); color: var(--accent-color);">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+              Oturum Sayfasına Dön
+            </button>
           </div>
+        </aside>
 
-          <!-- Aktif Oturumlar Card (PC) -->
-          <div class="card glass-card sessions-card" style="margin-top: 24px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-              <h2>Aktif Oturumlar</h2>
-              <button class="btn-primary" id="newSessionBtnPC" style="padding: 6px 12px; font-size: 12px; font-weight: 600; box-shadow: none;">Yeni Oturum Aç</button>
-            </div>
-            <p class="card-desc" style="margin-bottom: 12px;">Bağlanabileceğiniz mevcut oturumlar listesi.</p>
-            <div class="sessions-list" id="sessionsListPC" style="display: flex; flex-direction: column; gap: 8px; max-height: 120px; overflow-y: auto; padding: 4px; border-radius: var(--radius-sm); background: rgba(0,0,0,0.1);">
-              <!-- Rendered dynamically -->
-            </div>
-          </div>
-
-          <!-- Canlı Sohbet Card (PC) -->
-          <div class="card glass-card chat-card" style="margin-top: 24px;">
-            <h2>Canlı Sohbet</h2>
-            <p class="card-desc">Cihazlar arasında anlık sohbet edin.</p>
-            <div class="chat-container" style="display: flex; flex-direction: column; height: 320px;">
-              <div class="chat-messages" id="chatMessagesPC" style="flex-grow: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; border: 1px solid var(--glass-border); padding: 10px; border-radius: var(--radius-sm); background: rgba(0,0,0,0.1); max-height: 230px;">
-                <div class="no-chat-messages">Mesaj bulunmuyor...</div>
+        <!-- Main Workspace -->
+        <div class="workspace">
+          <!-- Top bar inside workspace -->
+          <header class="workspace-header">
+            <div class="header-user-info">
+              <div class="status-badge hidden" id="userHeaderBadge" style="background: rgba(99, 102, 241, 0.1); border-color: rgba(99, 102, 241, 0.3); color: var(--accent-color); font-weight: 600; display: flex; align-items: center; gap: 8px;">
+                <span id="userHeaderName">👤 Kullanıcı: -</span>
+                <button id="changeAccountBtn" style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); color: #ef4444; cursor: pointer; font-size: 11px; font-weight: 600; padding: 2px 6px; border-radius: 4px; transition: all 0.2s;">Değiştir</button>
               </div>
-              <div class="chat-input-row" style="display: flex; gap: 8px; margin-top: 10px;">
-                <input type="text" id="chatInputPC" class="select-dropdown" style="flex-grow: 1; text-align: left; margin: 0; padding: 8px 12px; font-size: 13px;" placeholder="Mesajınızı yazın...">
-                <button class="btn-primary" id="sendChatBtnPC" style="padding: 8px 16px; font-size: 13px;">Gönder</button>
+              <div class="status-badge" id="activeSessionHeaderBadge" style="background: rgba(99, 102, 241, 0.1); border-color: rgba(99, 102, 241, 0.3); color: var(--accent-color); font-weight: 600;">
+                🔑 Oturum PIN: -
               </div>
             </div>
+            
+            <div class="header-controls">
+              <div class="theme-accent-controls">
+                <button class="btn-theme-toggle" id="themeToggleBtn" title="Temayı Değiştir">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="sun-icon"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="moon-icon hidden"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+                </button>
+                <div class="accent-selector">
+                  <span class="accent-dot active" data-accent="indigo" style="background: #6366f1;"></span>
+                  <span class="accent-dot" data-accent="green" style="background: #10b981;"></span>
+                  <span class="accent-dot" data-accent="purple" style="background: #a855f7;"></span>
+                  <span class="accent-dot" data-accent="orange" style="background: #f97316;"></span>
+                </div>
+              </div>
+              <div class="status-badge" id="statusBadge">
+                <span class="pulse-dot"></span>
+                <span class="status-text">Sunucu Bağlanıyor...</span>
+              </div>
+            </div>
+          </header>
+
+          <!-- Tab Contents -->
+          <div class="tab-contents">
+            
+            <!-- TAB 1: FILES -->
+            <div id="filesTab" class="tab-panel active">
+              <div class="files-tab-layout">
+
+
+                <div class="card glass-card gallery-card" style="flex-grow: 1;">
+                <div class="gallery-header">
+                  <h2>Klasör İçeriği</h2>
+                  <div class="gallery-actions">
+                    <button class="btn-secondary" id="downloadZipBtn" title="Klasörü ZIP olarak indir">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                      ZIP İndir
+                    </button>
+                    <button class="btn-secondary" id="refreshBtn">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+                      Yenile
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Control Section: Folder Management and Search/Sort -->
+                <div class="control-section-wrapper" style="background: rgba(255,255,255,0.015); border: 1px solid var(--glass-border); border-radius: var(--radius-md); padding: 18px; margin-bottom: 24px; display: flex; flex-direction: column; gap: 18px;">
+                  
+                  <!-- Part 1: Folder Management & Stats -->
+                  <div class="gallery-subheader" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 14px; margin: 0; border-radius: 0;">
+                    <div class="folder-control" style="display: flex; align-items: center; gap: 8px;">
+                      <span class="control-label" style="font-weight: 600; color: var(--text-main);">📂 Klasör Seçimi:</span>
+                      <select id="folderSelectPC" class="select-dropdown" style="min-width: 140px; margin: 0;"></select>
+                      <button class="btn-icon-add" id="newFolderBtnPC" title="Yeni Klasör">+</button>
+                      <button class="btn-icon-add" id="renameFolderBtnPC" title="Klasörü Yeniden Adlandır" style="font-size: 14px;">✏️</button>
+                      <button class="btn-icon-add" id="deleteFolderBtnPC" title="Klasörü Sil" style="font-size: 14px; background: rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.2); color: #ef4444;">🗑️</button>
+                      <button class="btn-icon-add" id="mapFolderBtnPC" title="Klasörü Yerel Dizinle Eşle" style="font-size: 14px;">🔗</button>
+                    </div>
+                    
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                      <div class="stats-counter" id="statsCounter">0 Dosya (0 Bayt)</div>
+                      <div class="stats-counter" id="pcDiskFreeCounter" style="background: rgba(16, 185, 129, 0.08); border-color: rgba(16, 185, 129, 0.25); color: #10b981;">Boş Alan: -</div>
+                    </div>
+                  </div>
+
+                  <!-- Part 2: Search, Sort and Face ID Actions -->
+                  <div class="search-sort-controls" style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin: 0; border: none; padding: 0;">
+                    <div style="flex-grow: 1; display: flex; align-items: center; gap: 8px; min-width: 200px;">
+                      <span class="control-label" style="font-weight: 600; color: var(--text-main); white-space: nowrap;">🔍 Dosya Ara:</span>
+                      <input type="text" id="fileSearchInput" class="select-dropdown" style="flex-grow: 1; text-align: left; margin: 0;" placeholder="Dosya adı ile ara...">
+                    </div>
+                    
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                      <span class="control-label" style="font-weight: 600; color: var(--text-main); white-space: nowrap;">↕️ Sırala:</span>
+                      <select id="fileSortSelect" class="select-dropdown" style="min-width: 150px; margin: 0;">
+                        <option value="date-desc">Tarih: En Yeni</option>
+                        <option value="date-asc">Tarih: En Eski</option>
+                        <option value="size-desc">Boyut: En Büyük</option>
+                        <option value="size-asc">Boyut: En Küçük</option>
+                        <option value="name-asc">İsim: A - Z</option>
+                        <option value="name-desc">İsim: Z - A</option>
+                      </select>
+                    </div>
+                    
+                    <button class="btn-secondary" id="toggleFaceFinderBtn" style="padding: 10px 16px; display: flex; align-items: center; gap: 8px; min-width: 120px; justify-content: center; height: 38px; margin: 0;">
+                      <span>👤 Yüz Bul</span>
+                    </button>
+                  </div>
+
+                </div>
+
+
+
+
+                <!-- Gallery Selection Bar -->
+                <div class="gallery-selection-bar hidden" id="gallerySelectionBar" style="background: rgba(99,102,241,0.06); border: 1px solid rgba(99,102,241,0.2); border-radius: var(--radius-sm); padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
+                  <span id="selectionCountText" style="font-size: 13px; font-weight: 600; color: var(--text-main);">0 dosya seçildi</span>
+                  <div class="selection-actions" style="display: flex; gap: 8px;">
+                    <button class="btn-secondary" id="selectAllBtn" style="padding: 6px 12px; font-size: 12px;">Tümünü Seç</button>
+                    <button class="btn-secondary" id="clearSelectionBtn" style="padding: 6px 12px; font-size: 12px;">İptal</button>
+                    <button class="btn-primary" id="moveSelectedBtn" style="padding: 6px 12px; font-size: 12px; box-shadow: none;">Seçilenleri Taşı</button>
+                  </div>
+                </div>
+                
+                <!-- PC Drag and Drop Area -->
+                <div class="pc-upload-area" id="pcDropArea" style="margin-bottom: 20px;">
+                  <input type="file" id="pcFileInput" multiple style="display: none;">
+                  <input type="file" id="pcFolderInput" webkitdirectory directory multiple style="display: none;">
+                  <div class="pc-upload-content">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                      <polyline points="17 8 12 3 7 8"/>
+                      <line x1="12" y1="3" x2="12" y2="15"/>
+                    </svg>
+                    <span>Sürükleyip Bırakın veya Tıklayıp Dosya Seçin</span>
+                    <p style="margin-top: 4px; margin-bottom: 4px;">Klasör yüklemek için <a href="#" id="pcFolderSelectLink" style="color: var(--primary-color); text-decoration: underline; pointer-events: auto; position: relative; z-index: 10;">buraya tıklayın</a></p>
+                    <p>Buraya bırakılan dosya ve klasörler aktif klasöre yüklenir</p>
+                  </div>
+                </div>
+
+
+
+                <div id="galleryContainer" class="gallery-grid empty">
+                  <div class="empty-state">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                      <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                      <circle cx="8.5" cy="8.5" r="1.5"/>
+                      <polyline points="21 15 16 10 5 21"/>
+                    </svg>
+                    <p>Henüz dosya bulunmuyor.</p>
+                    <span>Yüklenen dosyalar anında burada listelenecektir.</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB: FACES -->
+          <div id="facesTab" class="tab-panel">
+              <div class="faces-tab-layout" style="display: grid; grid-template-columns: 320px 1fr; gap: 20px; align-items: start;">
+                <!-- Face Finder Side Pane -->
+                <div id="faceFinderPanel" class="card glass-card">
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h2 style="margin: 0; font-size: 18px; display: flex; align-items: center; gap: 8px;">
+                      <span>👤</span> Kişi Yüzü ile Görsel Ara
+                    </h2>
+                  </div>
+                  <div class="face-finder-body" style="display: flex; flex-direction: column; gap: 16px;">
+                    <div style="display: flex; flex-direction: column; gap: 16px;">
+                      <!-- File selection dropzone -->
+                      <div class="face-ref-dropzone" id="faceRefDropzone" style="width: 100%; height: 120px; border: 2px dashed var(--glass-border); border-radius: var(--radius-sm); display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; position: relative; overflow: hidden; background: rgba(0,0,0,0.15); transition: all 0.2s;">
+                        <input type="file" id="faceRefInput" accept="image/*" style="display: none;">
+                        <div class="dropzone-placeholder" style="text-align: center; font-size: 11px; color: var(--text-muted); padding: 6px;">
+                          <span>📸</span><br>Görsel Seç veya Sürükle
+                        </div>
+                      </div>
+
+                      <!-- Wizard Interactive Image container -->
+                      <div id="faceInteractiveContainer" class="interactive-image-container hidden">
+                        <img id="faceRefPreview" src="" alt="Önizleme">
+                      </div>
+                      
+                      <div id="faceSelectionHelpText" class="hidden" style="font-size: 11px; color: var(--accent-color); font-weight: 500; text-align: center; margin-top: -6px;">
+                        👉 Arayacağınız kişinin/yüzün üzerine tıklayın!
+                      </div>
+                      
+                      <div style="display: flex; flex-direction: column; gap: 12px;">
+                        <div>
+                          <label for="faceMatchThreshold" class="control-label" style="display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 13px;">
+                            <span>Benzerlik Hassasiyeti:</span>
+                            <strong id="thresholdValueText" style="color: var(--accent-color);">0.60</strong>
+                          </label>
+                          <input type="range" id="faceMatchThreshold" min="0.30" max="0.85" step="0.05" value="0.60" style="width: 100%; cursor: pointer; accent-color: var(--accent-color);">
+                        </div>
+                        
+                        <div style="display: flex; gap: 8px;">
+                          <button class="btn-primary" id="startFaceScanBtn" disabled style="padding: 10px 18px; font-size: 13px; flex-grow: 1; box-shadow: none;">
+                            Taramayı Başlat
+                          </button>
+                          <button class="btn-secondary" id="clearFaceScanBtn" style="padding: 10px 14px; font-size: 13px;">
+                            Temizle
+                          </button>
+                        </div>
+                        
+                        <!-- Fast Scan with registered profile photos -->
+                        <button class="btn-secondary" id="findMeBtn" style="width: 100%; padding: 10px; font-size: 13px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px; border-color: var(--accent-color); color: var(--accent-color); background: rgba(99, 102, 241, 0.05); margin-top: 4px;">
+                          <span>👤</span> Beni Bul (Profil Eşleşmesi)
+                        </button>
+                      </div>
+                    </div>
+                    
+                    <div id="faceScanProgressArea" class="hidden" style="border-top: 1px solid var(--glass-border); padding-top: 14px;">
+                      <div style="display: flex; justify-content: space-between; font-size: 13px; color: var(--text-main); margin-bottom: 6px;">
+                        <span id="faceScanProgressText">Yüz tanıma modelleri yükleniyor...</span>
+                        <span id="faceScanProgressPercent">0%</span>
+                      </div>
+                      <div class="progress-bar-outer" style="height: 8px; background: rgba(255,255,255,0.05);">
+                        <div id="faceScanProgressBar" class="progress-bar-inner" style="width: 0%; height: 100%; background: var(--accent-color); border-radius: 4px; transition: width 0.1s ease;"></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Right Pane: People Grouping Section -->
+                <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 20px;">
+                  <div id="peopleGroupingArea" class="people-group-container" style="background: rgba(255,255,255,0.02); border: 1px solid var(--glass-border); border-radius: var(--radius-md); padding: 16px;">
+                    <h3 style="margin-top: 0; font-size: 14px; font-weight: 600; color: var(--text-main); margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
+                      <span>👥 Tespit Edilen Kişiler (Yüz Grupları)</span>
+                      <button id="clearPeopleFilterBtn" class="btn-secondary hidden" style="padding: 4px 8px; font-size: 11px; height: auto; margin: 0;">Filtreyi Kaldır</button>
+                    </h3>
+                    <p style="font-size: 12px; color: var(--text-muted); margin-top: -6px; margin-bottom: 12px;">Klasördeki resimlerde bulunan yüzler otomatik olarak gruplandırılmıştır. Bir kişiye tıklayarak o kişiye ait resimleri "Dosyalarım" sekmesinde filtreleyebilirsiniz.</p>
+                    <div class="people-list" id="peopleList" style="display: flex; gap: 16px; overflow-x: auto; padding-bottom: 8px; align-items: center;">
+                      <!-- Kişi balonları buraya dinamik eklenecek -->
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- TAB 2: CHAT -->
+            <div id="commTab" class="tab-panel">
+              <!-- Canlı Sohbet Card (PC) -->
+              <div class="card glass-card chat-card" style="max-width: 600px; margin: 0 auto 24px auto;">
+                <h2>Canlı Sohbet</h2>
+                <p class="card-desc">Cihazlar arasında anlık sohbet edin.</p>
+                <div class="chat-container" style="display: flex; flex-direction: column; height: 320px;">
+                  <div class="chat-messages" id="chatMessagesPC" style="flex-grow: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; border: 1px solid var(--glass-border); padding: 10px; border-radius: var(--radius-sm); background: rgba(0,0,0,0.1); max-height: 250px;">
+                    <div class="no-chat-messages">Mesaj bulunmuyor...</div>
+                  </div>
+                  <div class="chat-input-row" style="display: flex; gap: 8px; margin-top: 10px;">
+                    <input type="text" id="chatInputPC" class="select-dropdown" style="flex-grow: 1; text-align: left; margin: 0; padding: 8px 12px; font-size: 13px;" placeholder="Mesajınızı yazın...">
+                    <button class="btn-primary" id="sendChatBtnPC" style="padding: 8px 16px; font-size: 13px;">Gönder</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Ortak Pano Card (PC) -->
+              <div class="card glass-card clipboard-card" style="max-width: 600px; margin: 0 auto;">
+                <h2>Ortak Pano</h2>
+                <p class="card-desc">Cihazlar arasında anlık metin veya bağlantı paylaşın.</p>
+                <div class="clipboard-input-row">
+                  <textarea id="clipboardInputPC" placeholder="Kopyalamak istediğiniz metni buraya yazın veya yapıştırın..."></textarea>
+                  <button class="btn-primary" id="sendClipboardBtnPC" style="padding: 10px 18px; height: 60px;">Panoya Ekle</button>
+                </div>
+                <div class="clipboard-list" id="clipboardListPC">
+                  <div class="no-clipboard">Panoda öğe bulunmuyor...</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- TAB 3: CONNECT MOBILE -->
+            <div id="connectTab" class="tab-panel">
+              <div class="connect-grid">
+                <!-- QR Code & Connect Card -->
+                <div class="card glass-card qr-card">
+                  <h2>iPhone'u Bağla</h2>
+                  <p class="card-desc">iPhone kameranız ile aşağıdaki QR kodu okutarak galerinizden veya dosyalarınızdan doğrudan paylaşım yapın.</p>
+                  
+                  <div class="qr-container-outer">
+                    <div id="qrcode"></div>
+                  </div>
+                  
+                  <div class="connection-info">
+                    <span class="info-label">Aynı Wi-Fi ağına bağlı olun:</span>
+                    <div class="ip-display" id="ipAddressText">http://localhost:3000</div>
+                    <button class="btn-copy" id="copyUrlBtn">Bağlantıyı Kopyala</button>
+                  </div>
+                </div>
+
+                <!-- Connected Devices Card -->
+                <div class="card glass-card devices-card">
+                  <h2>Bağlı Cihazlar</h2>
+                  <p class="card-desc">Şu anda sunucuya bağlı olan aktif cihazlar.</p>
+                  <div class="devices-list" id="devicesList">
+                    <div class="no-devices">Bağlı cihaz yok</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- TAB 4: SETTINGS & MY ACCOUNT -->
+            <div id="settingsTab" class="tab-panel">
+              <div class="connect-grid" style="grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; max-width: 1200px;">
+                <!-- Account details card -->
+                <div class="card glass-card">
+                  <h2>Hesabım & Depolama Bilgileri</h2>
+                  <p class="card-desc">Aktif kullanıcı hesabınız ve depolama alanı kullanımı.</p>
+                  
+                  <div style="margin-top: 20px; text-align: left; display: flex; flex-direction: column; gap: 16px;">
+                    <div>
+                      <span class="control-label" style="display:block; margin-bottom: 4px;">Kullanıcı Adı:</span>
+                      <div class="ip-display" id="settingsUsernameText" style="font-weight: 600; text-align: left;">-</div>
+                    </div>
+                    <div>
+                      <span class="control-label" style="display:block; margin-bottom: 4px;">E-posta Adresi:</span>
+                      <div class="ip-display" id="settingsEmailText" style="text-align: left;">-</div>
+                    </div>
+                    
+                    <div style="border-top: 1px solid var(--glass-border); padding-top: 16px;">
+                      <span class="control-label" style="display:block; margin-bottom: 8px;">Depolama Alanı Kullanımı:</span>
+                      
+                      <!-- Progress bar -->
+                      <div class="progress-bar-outer" style="height: 12px; margin-bottom: 8px;">
+                        <div id="settingsStorageProgressBar" class="progress-bar-inner" style="width: 0%; transition: width 0.3s ease;"></div>
+                      </div>
+                      
+                      <div style="display: flex; justify-content: space-between; font-size: 13px; color: var(--text-muted);">
+                        <span id="settingsStorageText">Hesaplanıyor...</span>
+                        <span id="settingsStorageMaxText">Maks: -</span>
+                      </div>
+                    </div>
+
+                    <div style="background: rgba(99, 102, 241, 0.05); border: 1px solid rgba(99, 102, 241, 0.1); border-radius: var(--radius-sm); padding: 12px; font-size: 13px; color: var(--text-main); display: flex; flex-direction: column; gap: 6px;">
+                      <div style="display: flex; justify-content: space-between;">
+                        <span>📂 Bu Odadaki Kullanım (PIN):</span>
+                        <strong id="settingsRoomStorageText" style="color: var(--accent-color);">-</strong>
+                      </div>
+                      <div style="display: flex; justify-content: space-between;">
+                        <span>📦 Toplam Kullanım (Tüm Odalar):</span>
+                        <strong id="settingsTotalStorageText" style="color: var(--accent-color);">-</strong>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Change Password card -->
+                <div class="card glass-card" id="settingsPasswordCard">
+                  <h2>Şifre Değiştir</h2>
+                  <p class="card-desc">Hesap güvenliğiniz için şifrenizi güncelleyin.</p>
+                  
+                  <div style="margin-top: 20px; text-align: left; display: flex; flex-direction: column; gap: 12px;">
+                    <input type="password" id="settingsCurrentPassword" class="select-dropdown" style="width: 100%; text-align: left;" placeholder="Mevcut Şifre">
+                    <input type="password" id="settingsNewPassword" class="select-dropdown" style="width: 100%; text-align: left;" placeholder="Yeni Şifre">
+                    <input type="password" id="settingsConfirmPassword" class="select-dropdown" style="width: 100%; text-align: left;" placeholder="Yeni Şifre (Tekrar)">
+                    
+                    <button class="btn-primary" id="settingsChangePasswordBtn" style="width: 100%; margin-top: 10px;">Şifreyi Güncelle</button>
+                  </div>
+                </div>
+
+                <!-- Profile Facial Recognition Card -->
+                <div class="card glass-card" id="settingsProfileCard">
+                  <h2>Yüz Tanıma Profilim</h2>
+                  <p class="card-desc">Beni Bul özelliğini kullanmak için profil referans resimlerinizi (en fazla 5 adet) yükleyin.</p>
+                  
+                  <div style="display: flex; flex-direction: column; gap: 16px;">
+                    <!-- Register Photo Trigger -->
+                    <div class="face-ref-dropzone" id="profileRefDropzone" style="width: 100%; height: 100px; border: 2px dashed var(--glass-border); border-radius: var(--radius-sm); display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; position: relative; overflow: hidden; background: rgba(0,0,0,0.15); transition: all 0.2s;">
+                      <input type="file" id="profileRefInput" accept="image/*" style="display: none;">
+                      <div class="dropzone-placeholder" style="text-align: center; font-size: 11px; color: var(--text-muted); padding: 6px;">
+                        <span>📸</span><br>Görsel Ekle (Tıkla/Sürükle)
+                      </div>
+                    </div>
+                    
+                    <!-- Interactive Selector for Profile Photo -->
+                    <div id="profileInteractiveContainer" class="interactive-image-container hidden">
+                      <img id="profileRefPreview" src="" alt="Önizleme">
+                    </div>
+                    
+                    <div id="profileSelectionHelpText" class="hidden" style="font-size: 11px; color: var(--accent-color); font-weight: 500; text-align: center; margin-top: -6px;">
+                      👉 Fotoğrafta kendi yüzünüzün üzerine tıklayarak seçin!
+                    </div>
+                    
+                    <!-- Registered Profile Photos List -->
+                    <div>
+                      <span class="control-label" style="display:block; margin-bottom: 8px;">Kayıtlı Yüz Referansları:</span>
+                      <div class="profile-references-grid" id="profileReferencesGrid">
+                        <!-- Kayıtlı öğeler dinamik eklenecek -->
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+            <!-- TAB: HELP & ABOUT -->
+            <div id="helpTab" class="tab-panel">
+              <div class="connect-grid" style="grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; max-width: 1200px;">
+                
+                <!-- Help / Manual Card -->
+                <div class="card glass-card">
+                  <h2>Yardım & Kullanım Kılavuzu</h2>
+                  <p class="card-desc">AirDrop Local butonlarının işlevleri ve kullanım rehberi.</p>
+                  
+                  <div style="margin-top: 20px; display: flex; flex-direction: column; gap: 14px; text-align: left; max-height: 480px; overflow-y: auto; padding-right: 8px;">
+                    <div style="border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 10px;">
+                      <strong style="color: var(--accent-color); font-size: 13px; display: block; margin-bottom: 4px;">📂 Dosya İşlemleri</strong>
+                      <ul style="margin: 0; padding-left: 18px; font-size: 12px; color: var(--text-muted); line-height: 1.6;">
+                        <li><strong>ZIP İndir:</strong> Bulunduğunuz aktif klasörün tamamını .zip olarak paketleyip bilgisayara indirir.</li>
+                        <li><strong>Yenile:</strong> Klasör içeriğini anlık olarak sunucudan tekrar çeker.</li>
+                        <li><strong>Klasör Eşle (Zincir):</strong> Klasörü bilgisayarınızdaki gerçek bir Windows klasörü ile senkronize eder.</li>
+                      </ul>
+                    </div>
+                    
+                    <div style="border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 10px;">
+                      <strong style="color: var(--accent-color); font-size: 13px; display: block; margin-bottom: 4px;">📦 Toplu Seçim Aksiyonları</strong>
+                      <ul style="margin: 0; padding-left: 18px; font-size: 12px; color: var(--text-muted); line-height: 1.6;">
+                        <li><strong>Tümünü Seç / İptal:</strong> Ekrandaki tüm dosyaları topluca seçer ya da seçimi sıfırlar.</li>
+                        <li><strong>Taşı / ZIP / Sil:</strong> Seçilen tüm dosyaları başka klasöre taşır, toplu zip indirir veya topluca siler.</li>
+                      </ul>
+                    </div>
+
+                    <div>
+                      <strong style="color: var(--accent-color); font-size: 13px; display: block; margin-bottom: 4px;">👤 Yüz Tanıma Paneli</strong>
+                      <ul style="margin: 0; padding-left: 18px; font-size: 12px; color: var(--text-muted); line-height: 1.6;">
+                        <li><strong>Benzerlik Hassasiyeti:</strong> Yüz karşılaştırma toleransıdır. (0.60 varsayılandır, düşük değerler daha katı eşleşme sağlar).</li>
+                        <li><strong>Beni Bul:</strong> Profilinizde kayıtlı yüz resimleriyle galerideki tüm fotoğrafları saniyeler içinde otomatik tarar.</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- About / Developer Attribution Card -->
+                <div class="card glass-card" style="display: flex; flex-direction: column; justify-content: space-between;">
+                  <div>
+                    <h2>Proje Hakkında</h2>
+                    <p class="card-desc">Geliştirici ve sahiplik bilgileri.</p>
+                    
+                    <div style="margin-top: 20px; text-align: left; display: flex; flex-direction: column; gap: 16px;">
+                      <div style="text-align: center; padding: 16px; background: rgba(99, 102, 241, 0.05); border: 1px dashed var(--accent-color); border-radius: var(--radius-sm);">
+                        <span style="font-size: 28px;">💻</span>
+                        <h3 style="margin: 8px 0 2px 0; font-size: 15px; font-weight: 700; color: var(--text-main);">Oğuz Taşdemir</h3>
+                        <span style="font-size: 11px; color: var(--text-muted);">Proje Sahibi & Geliştirici</span>
+                      </div>
+                      
+                      <p style="font-size: 12px; color: var(--text-muted); line-height: 1.6; margin: 0;">
+                        AirDrop Local, yerel ağda yüksek hızlı kablosuz dosya transferini yapay zeka entegrasyonuyla sunan modern bir açık kaynak projedir.
+                      </p>
+
+                      <div style="border-top: 1px solid var(--glass-border); padding-top: 14px;">
+                        <strong style="font-size: 12px; color: var(--text-main); display: block; margin-bottom: 6px;">📜 Lisans ve Geliştirme Notu</strong>
+                        <p style="font-size: 11px; color: var(--text-muted); line-height: 1.5; margin: 0;">
+                          Bu proje geliştirmelere tamamen açıktır. Kodları kendi çalışmalarınızda, eğitimlerinizde veya portföyünüzde kullanırken geliştiriciye (<strong>Oğuz Taşdemir</strong>) referans göstererek projeyi daha da ileriye taşıyabilirsiniz.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div style="font-size: 10px; color: var(--text-muted); border-top: 1px solid rgba(255,255,255,0.05); padding-top: 12px; text-align: center; margin-top: 20px;">
+                    © 2026 AirDrop Local. MIT Lisansı.
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
           </div>
         </div>
 
-        <!-- Right Column: Files & Gallery Card -->
-        <div class="dashboard-right-col">
-          <div class="card glass-card gallery-card">
-            <div class="gallery-header">
-              <h2>Klasör İçeriği</h2>
-              <div class="gallery-actions">
-                <button class="btn-secondary" id="downloadZipBtn" title="Klasörü ZIP olarak indir">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                  ZIP İndir
-                </button>
-                <button class="btn-secondary" id="refreshBtn">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
-                  Yenile
-                </button>
-              </div>
-            </div>
-
-            <!-- Folder Selection and Stats -->
-            <div class="gallery-subheader">
-              <div class="folder-control">
-                <span class="control-label">Aktif Klasör:</span>
-                <select id="folderSelectPC" class="select-dropdown"></select>
-                <button class="btn-icon-add" id="newFolderBtnPC" title="Yeni Klasör">+</button>
-                <button class="btn-icon-add" id="renameFolderBtnPC" title="Klasörü Yeniden Adlandır" style="font-size: 14px;">✏️</button>
-                <button class="btn-icon-add" id="deleteFolderBtnPC" title="Klasörü Sil" style="font-size: 14px; background: rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.2); color: #ef4444;">🗑️</button>
-              </div>
-              <div class="stats-counter" id="statsCounter">0 Dosya (0 Bayt)</div>
-            </div>
-
-            <!-- Search and Sorting Controls -->
-            <div class="search-sort-controls" style="display: flex; gap: 12px; margin-bottom: 20px; align-items: center; flex-wrap: wrap;">
-              <input type="text" id="fileSearchInput" class="select-dropdown" style="flex-grow: 1; text-align: left;" placeholder="Dosya adı ile ara...">
-              <select id="fileSortSelect" class="select-dropdown" style="min-width: 180px;">
-                <option value="date-desc">Tarih: En Yeni</option>
-                <option value="date-asc">Tarih: En Eski</option>
-                <option value="size-desc">Boyut: En Büyük</option>
-                <option value="size-asc">Boyut: En Küçük</option>
-                <option value="name-asc">İsim: A - Z</option>
-                <option value="name-desc">İsim: Z - A</option>
-              </select>
-            </div>
-
-            <!-- Gallery Selection Bar -->
-            <div class="gallery-selection-bar hidden" id="gallerySelectionBar" style="background: rgba(99,102,241,0.06); border: 1px solid rgba(99,102,241,0.2); border-radius: var(--radius-sm); padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
-              <span id="selectionCountText" style="font-size: 13px; font-weight: 600; color: var(--text-main);">0 dosya seçildi</span>
-              <div class="selection-actions" style="display: flex; gap: 8px;">
-                <button class="btn-secondary" id="selectAllBtn" style="padding: 6px 12px; font-size: 12px;">Tümünü Seç</button>
-                <button class="btn-secondary" id="clearSelectionBtn" style="padding: 6px 12px; font-size: 12px;">İptal</button>
-                <button class="btn-primary" id="moveSelectedBtn" style="padding: 6px 12px; font-size: 12px; box-shadow: none;">Seçilenleri Taşı</button>
-              </div>
-            </div>
-            
-            <!-- PC Drag and Drop Area -->
-            <div class="pc-upload-area" id="pcDropArea">
-              <input type="file" id="pcFileInput" multiple style="display: none;">
-              <div class="pc-upload-content">
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                  <polyline points="17 8 12 3 7 8"/>
-                  <line x1="12" y1="3" x2="12" y2="15"/>
-                </svg>
-                <span>Sürükleyip Bırakın veya Tıklayıp Dosya Seçin</span>
-                <p>Buraya bırakılan dosyalar aktif klasöre yüklenir</p>
-              </div>
-            </div>
-
-            <div id="galleryContainer" class="gallery-grid empty">
-              <div class="empty-state">
-                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-                  <circle cx="8.5" cy="8.5" r="1.5"/>
-                  <polyline points="21 15 16 10 5 21"/>
-                </svg>
-                <p>Henüz dosya bulunmuyor.</p>
-                <span>Yüklenen dosyalar anında burada listelenecektir.</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Shared Clipboard Card -->
-          <div class="card glass-card clipboard-card" style="margin-top: 32px;">
-            <div class="clipboard-header">
-              <h2>Ortak Pano (Shared Clipboard)</h2>
-              <span class="control-label">Cihazlar arasında anlık metin veya link paylaşın</span>
-            </div>
-            <div class="clipboard-input-row">
-              <textarea id="clipboardInput" placeholder="Paylaşmak istediğiniz metin veya linki buraya yazın..."></textarea>
-              <button class="btn-primary" id="sendClipboardBtn">Paylaş</button>
-            </div>
-            <div class="clipboard-list" id="clipboardList">
-              <div class="no-clipboard">Pano boş. Metin yazıp paylaşın!</div>
-            </div>
-          </div>
-        </div>
       </div>
     </section>
 
     <!-- MOBILE VIEW PORTAL -->
     <section id="mobileView" class="view-section">
-      <div class="mobile-tabs">
-        <button class="mobile-tab-btn active" data-tab="mobile-upload-tab">Dosya Yükle</button>
-        <button class="mobile-tab-btn" data-tab="mobile-files-tab">Klasördeki Dosyalar</button>
-        <button class="mobile-tab-btn" data-tab="mobile-clip-tab">Ortak Pano</button>
-        <button class="mobile-tab-btn" data-tab="mobile-chat-tab">Canlı Sohbet</button>
+      <!-- Mobile Bottom Navigation Bar -->
+      <div class="mobile-bottom-nav">
+        <button class="mobile-nav-item active" data-tab="mobile-upload-tab">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/><line x1="12" y1="3" x2="12" y2="9"/></svg>
+          <span>Yükle</span>
+        </button>
+        <button class="mobile-nav-item" data-tab="mobile-files-tab">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+          <span>Dosyalar</span>
+        </button>
+
+        <button class="mobile-nav-item" data-tab="mobile-chat-tab">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          <span>Sohbet</span>
+        </button>
       </div>
 
       <!-- Mobile Tab 1: Upload Files -->
@@ -215,6 +588,7 @@
         <div class="card glass-card mobile-card">
           <h2>Bilgisayara Gönder</h2>
           <p class="card-desc">Cihazınızdan dosya seçerek bilgisayarınıza anında kablosuz olarak aktarın.</p>
+          <div id="mobileDiskFreeBadge" style="margin-top: 10px; margin-bottom: 15px; font-size: 12px; display: inline-block; padding: 6px 12px; border-radius: 20px; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.25); color: #10b981; font-weight: 600;">Hedef Cihaz Boş Alan: -</div>
           
           <div class="mobile-folder-selector">
             <label class="control-label" for="folderSelectMobile">Hedef Klasör:</label>
@@ -319,34 +693,33 @@
         </div>
       </div>
 
-      <!-- Mobile Tab 3: Clipboard -->
-      <div id="mobile-clip-tab" class="mobile-tab-content">
-        <div class="card glass-card mobile-card">
-          <h2>Ortak Pano</h2>
-          <p class="card-desc">Cihazlar arasında anlık metin veya link paylaşın.</p>
-          <div class="clipboard-input-row">
-            <textarea id="mobileClipboardInput" placeholder="Paylaşmak istediğiniz metni veya linki buraya yazın..."></textarea>
-            <button class="btn-primary btn-block" id="mobileSendClipboardBtn" style="margin-top: 12px;">Paylaş</button>
-          </div>
-          <div class="clipboard-list" id="mobileClipboardList" style="margin-top: 24px;">
-            <div class="no-clipboard">Pano boş. Metin yazıp paylaşın!</div>
-          </div>
-        </div>
-      </div>
+
 
       <!-- Mobile Tab 4: Live Chat -->
       <div id="mobile-chat-tab" class="mobile-tab-content">
-        <div class="card glass-card mobile-card">
+        <div class="card glass-card mobile-card" style="margin-bottom: 16px;">
           <h2>Canlı Sohbet</h2>
           <p class="card-desc">Cihazlar arasında anlık sohbet edin.</p>
-          <div class="chat-container" style="display: flex; flex-direction: column; height: 320px;">
-            <div class="chat-messages" id="chatMessagesMobile" style="flex-grow: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; border: 1px solid var(--glass-border); padding: 10px; border-radius: var(--radius-sm); background: rgba(0,0,0,0.1); max-height: 230px;">
+          <div class="chat-container" style="display: flex; flex-direction: column; height: 260px;">
+            <div class="chat-messages" id="chatMessagesMobile" style="flex-grow: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; border: 1px solid var(--glass-border); padding: 10px; border-radius: var(--radius-sm); background: rgba(0,0,0,0.1); max-height: 180px;">
               <div class="no-chat-messages">Mesaj bulunmuyor...</div>
             </div>
             <div class="chat-input-row" style="display: flex; gap: 8px; margin-top: 10px;">
               <input type="text" id="chatInputMobile" class="select-dropdown" style="flex-grow: 1; text-align: left; margin: 0; padding: 8px 12px; font-size: 13px;" placeholder="Mesajınızı yazın...">
               <button class="btn-primary" id="sendChatBtnMobile" style="padding: 8px 16px; font-size: 13px;">Gönder</button>
             </div>
+          </div>
+        </div>
+
+        <div class="card glass-card mobile-card">
+          <h2>Ortak Pano</h2>
+          <p class="card-desc">Cihazlar arasında anlık metin veya bağlantı paylaşın.</p>
+          <div class="clipboard-input-row" style="display: flex; gap: 8px; margin-bottom: 12px;">
+            <textarea id="clipboardInputMobile" style="flex-grow: 1; height: 50px; background: rgba(0,0,0,0.2); border: 1px solid var(--glass-border); color: var(--text-main); padding: 8px; border-radius: var(--radius-sm); font-size: 13px; resize: none; outline: none;" placeholder="Metin yazın..."></textarea>
+            <button class="btn-primary" id="sendClipboardBtnMobile" style="padding: 8px 12px; height: 50px; font-size: 13px;">Ekle</button>
+          </div>
+          <div class="clipboard-list" id="clipboardListMobile" style="display: flex; flex-direction: column; gap: 8px; max-height: 180px; overflow-y: auto;">
+            <div class="no-clipboard">Panoda öğe bulunmuyor...</div>
           </div>
         </div>
       </div>
@@ -389,7 +762,10 @@
         <button class="btn-secondary quick-path-btn" id="qpPictures" style="padding: 8px; font-size: 12px; font-weight: 500;">Resimler</button>
       </div>
 
-      <input type="text" id="moveModalInput" class="select-dropdown" style="width: 100%; margin-bottom: 20px; text-align: left;" placeholder="C:/Users/... gibi bir yol girin">
+      <div style="display: flex; gap: 8px; margin-bottom: 20px;">
+        <input type="text" id="moveModalInput" class="select-dropdown" style="flex-grow: 1; margin: 0; text-align: left;" placeholder="C:/Users/... gibi bir yol girin">
+        <button class="btn-secondary" id="browseMoveFolderBtn" style="padding: 10px 14px; font-size: 16px; min-width: auto; height: 38px; display: flex; align-items: center; justify-content: center;" title="Klasör Seç">📁</button>
+      </div>
       
       <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; margin-bottom: 20px; cursor: pointer; color: var(--text-main);">
         <input type="checkbox" id="zipAndMoveCheckbox" class="file-check-input">
@@ -413,6 +789,115 @@
       <div id="pinErrorText" style="color: var(--danger-color); font-size: 13px; margin-top: -10px; margin-bottom: 15px; font-weight: 500;" class="hidden">Hatalı veya süresi geçmiş PIN kodu! Tekrar deneyin.</div>
       
       <button class="btn-primary btn-block" id="savePinModalBtn">Doğrula & Bağlan</button>
+    </div>
+  </div>
+
+  <!-- Custom Mobile Device Name Modal -->
+  <div id="mobileDeviceNameModal" class="lightbox modal-overlay hidden" style="background: var(--bg-primary); z-index: 2000;">
+    <div class="modal-card glass-card" style="text-align: center; max-width: 360px; width: 90%;">
+      <h2>Cihaz Kimliği</h2>
+      <p class="card-desc">Dosya gönderirken ve sohbet ederken görünecek cihaz adınızı girin (örn. Oğuz iPhone).</p>
+      
+      <input type="text" id="mobileDeviceNameInput" class="select-dropdown" style="width: 100%; margin-bottom: 20px; text-align: center; padding: 10px 14px;" placeholder="Cihaz adı (örn. Oğuz iPhone)">
+      
+      <button class="btn-primary btn-block" id="saveMobileDeviceNameBtn">Kaydet & Bağlan</button>
+    </div>
+  </div>
+
+  <!-- Custom Room Modal -->
+  <div id="roomModal" class="lightbox modal-overlay hidden" style="z-index: 2100;">
+    <div class="modal-card glass-card" style="text-align: center; max-width: 400px; width: 90%;">
+      <h2 id="roomModalTitle">Yeni Oda Oluştur</h2>
+      <p class="card-desc" id="roomModalDesc">Yeni oda adını girin (İsteğe bağlı):</p>
+      <input type="text" id="roomModalInput" class="select-dropdown" style="width: 100%; margin-bottom: 20px; text-align: left;" placeholder="Oda adı...">
+      <div class="modal-actions-row" style="display: flex; gap: 12px;">
+        <button class="btn-secondary" id="closeRoomModalBtn" style="flex: 1; padding: 10px 20px;">İptal</button>
+        <button class="btn-primary" id="saveRoomModalBtn" style="flex: 1; padding: 10px 20px; box-shadow: none;">Tamam</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Custom Account Selection & User Auth Modal -->
+  <div id="accountModal" class="lightbox modal-overlay hidden" style="background: var(--bg-primary); z-index: 2000;">
+    <div class="modal-card glass-card" style="text-align: center; max-width: 480px; width: 90%;">
+      
+      <!-- STEP 1: Authentication Tabs (Login / Register) -->
+      <div id="authSection">
+        <div class="auth-tabs" style="display: flex; border-bottom: 1px solid var(--glass-border); margin-bottom: 20px;">
+          <button id="tabLoginBtn" class="auth-tab active" style="flex: 1; padding: 12px; background: transparent; border: none; border-bottom: 2px solid var(--accent-color); color: var(--text-main); font-weight: 600; cursor: pointer; transition: all 0.2s;">Giriş Yap</button>
+          <button id="tabRegisterBtn" class="auth-tab" style="flex: 1; padding: 12px; background: transparent; border: none; border-bottom: 2px solid transparent; color: var(--text-muted); font-weight: 600; cursor: pointer; transition: all 0.2s;">Kayıt Ol</button>
+        </div>
+
+        <!-- Login Form -->
+        <div id="authLoginForm">
+          <input type="text" id="authLoginIdentifier" class="select-dropdown" style="width: 100%; margin-bottom: 12px; text-align: left; padding: 10px 14px;" placeholder="Kullanıcı Adı veya E-posta">
+          <input type="password" id="authLoginPassword" class="select-dropdown" style="width: 100%; margin-bottom: 12px; text-align: left; padding: 10px 14px;" placeholder="Şifre">
+          
+          <div style="text-align: right; margin-bottom: 20px;">
+            <a href="#" id="authForgotPasswordLink" style="font-size: 13px; color: var(--accent-color); text-decoration: none; font-weight: 500;">Şifremi Unuttum</a>
+          </div>
+
+          <button class="btn-primary btn-block" id="authLoginSubmitBtn">Giriş Yap</button>
+          
+          <!-- Guest Login -->
+          <div style="margin-top: 16px; border-top: 1px solid var(--glass-border); padding-top: 16px;">
+            <button class="btn-secondary btn-block" id="authGuestBtn" style="width: 100%;">Misafir Olarak Devam Et</button>
+          </div>
+        </div>
+
+        <!-- Register Form -->
+        <div id="authRegisterForm" class="hidden">
+          <input type="text" id="authRegisterUsername" class="select-dropdown" style="width: 100%; margin-bottom: 12px; text-align: left; padding: 10px 14px;" placeholder="Kullanıcı Adı">
+          <input type="email" id="authRegisterEmail" class="select-dropdown" style="width: 100%; margin-bottom: 12px; text-align: left; padding: 10px 14px;" placeholder="E-posta Adresi">
+          <input type="password" id="authRegisterPassword" class="select-dropdown" style="width: 100%; margin-bottom: 20px; text-align: left; padding: 10px 14px;" placeholder="Şifre">
+          
+          <button class="btn-primary btn-block" id="authRegisterSubmitBtn">Kayıt Ol & Hesap Aç</button>
+        </div>
+      </div>
+
+      <!-- STEP 2: Forgot Password Form -->
+      <div id="authForgotSection" class="hidden">
+        <h2>Şifremi Unuttum</h2>
+        <p class="card-desc">Hesabınıza kayıtlı e-posta adresinizi girin. Şifrenizi sıfırlamanız için size 6 haneli bir kod göndereceğiz.</p>
+        
+        <input type="email" id="authForgotEmail" class="select-dropdown" style="width: 100%; margin-bottom: 20px; text-align: left; padding: 10px 14px;" placeholder="E-posta Adresi">
+        
+        <div style="display: flex; gap: 12px;">
+          <button class="btn-secondary" id="authForgotBackBtn" style="flex: 1; padding: 10px 20px;">Geri Dön</button>
+          <button class="btn-primary" id="authForgotSubmitBtn" style="flex: 1.5; padding: 10px 20px; box-shadow: none;">Kod Gönder</button>
+        </div>
+      </div>
+
+      <!-- STEP 3: Reset Password (Enter Code & New Password) -->
+      <div id="authResetSection" class="hidden">
+        <h2>Şifre Sıfırlama</h2>
+        <p class="card-desc" id="authResetDesc">E-posta adresinize gelen 6 haneli doğrulama kodunu ve yeni şifrenizi girin.</p>
+        
+        <input type="text" id="authResetCode" class="select-dropdown" maxlength="6" style="width: 100%; margin-bottom: 12px; text-align: center; font-size: 20px; letter-spacing: 6px; padding: 10px 14px;" placeholder="••••••">
+        <input type="password" id="authResetNewPassword" class="select-dropdown" style="width: 100%; margin-bottom: 20px; text-align: left; padding: 10px 14px;" placeholder="Yeni Şifre">
+        
+        <div style="display: flex; gap: 12px;">
+          <button class="btn-secondary" id="authResetBackBtn" style="flex: 1; padding: 10px 20px;">İptal</button>
+          <button class="btn-primary" id="authResetSubmitBtn" style="flex: 1.5; padding: 10px 20px; box-shadow: none;">Şifreyi Güncelle</button>
+        </div>
+      </div>
+
+      <!-- STEP 4: Session Selection (remains unchanged, displayed after login) -->
+      <div id="sessionSelectionSection" class="hidden">
+        <h2 id="sessionModalTitle">Oturum Seçimi</h2>
+        <p class="card-desc" id="sessionModalDesc">Bağlanmak istediğiniz oturumu seçin veya yeni bir oturum oluşturun.</p>
+        
+        <!-- Existing sessions list -->
+        <div id="sessionModalListContainer" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 24px; max-height: 200px; overflow-y: auto; padding: 4px; border-radius: var(--radius-sm);">
+          <!-- Dynamically rendered session buttons -->
+        </div>
+        
+        <div style="display: flex; gap: 12px; border-top: 1px solid var(--glass-border); padding-top: 20px; margin-top: 10px;">
+          <button class="btn-secondary" id="backToAccountsBtn" style="flex: 1; padding: 10px 20px;">← Çıkış Yap</button>
+          <button class="btn-primary" id="createNewSessionModalBtn" style="flex: 1.5; padding: 10px 20px; box-shadow: none;">Yeni Oturum Aç</button>
+        </div>
+      </div>
+
     </div>
   </div>
 
@@ -451,9 +936,66 @@
     </div>
   </div>
 
+  <!-- Custom Upload Progress Modal -->
+  <div id="uploadProgressModal" class="lightbox modal-overlay hidden" style="z-index: 2500;">
+    <div class="modal-card glass-card" style="max-width: 400px; width: 90%; text-align: center;">
+      <h2 id="uploadProgressTitle">Klasör Yükleniyor</h2>
+      <p class="card-desc" id="uploadProgressDesc">Dosyalar yükleniyor...</p>
+      
+      <!-- Progress Bar -->
+      <div class="progress-bar-outer" style="height: 12px; margin-bottom: 15px; background: rgba(255,255,255,0.05);">
+        <div id="uploadProgressInnerBar" class="progress-bar-inner" style="width: 0%; height: 100%; background: var(--accent-gradient); border-radius: 4px; transition: width 0.2s ease;"></div>
+      </div>
+      
+      <div style="font-size: 16px; font-weight: 600; color: var(--accent-color); margin-bottom: 8px;" id="uploadProgressCounter">0 / 0</div>
+    </div>
+  </div>
+
+  <!-- Custom Alert/Warning Modal -->
+  <div id="customAlertModal" class="lightbox modal-overlay hidden" style="z-index: 3000;">
+    <div class="modal-card glass-card" style="max-width: 400px; width: 90%; text-align: center; border-color: rgba(239, 68, 68, 0.4);">
+      <div style="font-size: 48px; margin-bottom: 16px;">⚠️</div>
+      <h2 id="customAlertTitle" style="color: #ef4444; font-size: 20px; font-weight: 600; margin-bottom: 8px;">Yükleme Başarısız</h2>
+      <p class="card-desc" id="customAlertMessage" style="margin-bottom: 20px;">Bir hata oluştu veya bağlantı kesildi.</p>
+      <button class="btn-primary" id="closeCustomAlertBtn" style="width: 100%; background: #ef4444; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3); border: none; font-weight: 600; cursor: pointer; padding: 12px; border-radius: var(--radius-sm); color: white;">Tamam</button>
+    </div>
+  </div>
+
+  <!-- Custom Map Folder Modal -->
+  <div id="mapFolderModal" class="lightbox modal-overlay hidden" style="z-index: 2200;">
+    <div class="modal-card glass-card" style="max-width: 480px; width: 90%;">
+      <h2>Klasörü Yerel Dizinle Eşle</h2>
+      <p class="card-desc">Bu klasörün doğrudan bilgisayarınızdaki bir dizinden okunmasını sağlayın. Bu sayede dosyalar AirDrop klasörüne kopyalanmaz, orijinal yerinden okunur.</p>
+      
+      <div style="display: flex; gap: 8px; margin-bottom: 20px;">
+        <input type="text" id="mapFolderInput" class="select-dropdown" style="flex-grow: 1; margin: 0; text-align: left;" placeholder="C:/Users/Kullanici/Pictures gibi bir yol girin">
+        <button class="btn-secondary" id="browseMapFolderBtn" style="padding: 10px 14px; font-size: 16px; min-width: auto; height: 38px; display: flex; align-items: center; justify-content: center;" title="Klasör Seç">📁</button>
+      </div>
+      
+      <div class="modal-actions-row">
+        <button class="btn-secondary" id="closeMapFolderModalBtn">İptal</button>
+        <button class="btn-secondary" id="clearMapFolderModalBtn" style="color: #ef4444; border-color: rgba(239,68,68,0.2); background: rgba(239,68,68,0.05);">Eşlemeyi Kaldır</button>
+        <button class="btn-primary" id="saveMapFolderModalBtn">Eşle</button>
+      </div>
+    </div>
+  </div>
+
+
+
+  <!-- Floating Batch Actions Bar -->
+  <div class="batch-actions-bar" id="batchActionsBar">
+    <div class="batch-actions-count" id="batchActionsCount">0 dosya seçildi</div>
+    <div class="batch-actions-btns">
+      <button class="btn-secondary" id="batchMoveBtn" style="padding: 8px 16px; font-size: 13px;">Seçilenleri Taşı</button>
+      <button class="btn-secondary" id="batchZipBtn" style="padding: 8px 16px; font-size: 13px;">Seçilenleri ZIP İndir</button>
+      <button class="btn-primary" id="batchDeleteBtn" style="padding: 8px 16px; font-size: 13px; background: var(--danger-color); border-color: var(--danger-color); box-shadow: none;">Seçilenleri Sil</button>
+      <button class="btn-secondary" id="batchClearBtn" style="padding: 8px 16px; font-size: 13px;">Vazgeç</button>
+    </div>
+  </div>
+
   <!-- Toast Notifications Container -->
   <div id="toastContainer" class="toast-container"></div>
 
-  <script src="app.js"></script>
+  <script type="module" src="app.js"></script>
 </body>
 </html>

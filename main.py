@@ -9,6 +9,19 @@ import signal
 PORT = 3000
 APP_DIR = os.path.dirname(os.path.abspath(__file__))
 
+# Load port from .env if exists
+env_path = os.path.join(APP_DIR, ".env")
+if os.path.exists(env_path):
+    try:
+        with open(env_path, "r", encoding="utf-8") as f:
+            for line in f:
+                if line.strip().startswith("PORT="):
+                    val = line.strip().split("=")[1].strip()
+                    if val:
+                        PORT = int(val)
+    except Exception:
+        pass
+
 def get_local_ip():
     """Detects the primary local network IP address of the host computer."""
     try:
@@ -59,7 +72,7 @@ def run_server():
 
     # Start the node process
     try:
-        process = subprocess.Popen(["node", "server.js"], cwd=APP_DIR, shell=True)
+        process = subprocess.Popen(["node", "src/server.js"], cwd=APP_DIR, shell=True)
     except Exception as e:
         print(f"[-] Sunucu başlatılamadı: {e}")
         sys.exit(1)
